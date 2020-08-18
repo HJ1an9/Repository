@@ -1,0 +1,90 @@
+//连接与操作数据库的工具类
+    public class DBHandler
+    {
+
+        //SqlConnection数据库连接对象
+        private SqlConnection localConnection = null;
+
+        //构造函数中初始化连接对象，传入数据库服务名，数据库实例名，用户名和密码
+        public DBHandler(string server, string dataBase, string id, string pwd)
+        {
+            String connectionString = "Data Source=" + server + ";Initial Catalog=" + dataBase
+                                    + ";User ID=" + id + ";Password=" + pwd;
+            this.localConnection = new SqlConnection(connectionString);
+        }
+
+        //创建对象后调用该方法判断是否能够成功连接
+        public int checkValidate(ref string errMsg)
+        {
+            try
+            {
+                this.localConnection.Open();
+            }
+            catch (Exception ex)
+            {
+                errMsg = "[Connecting failed]" + ex.Message;
+                return -1;
+            }
+            return 0;
+        }
+
+        //操作数据库前调用
+        private void prepareConnect()
+        {
+            switch (this.localConnection.State)
+            {
+                case ConnectionState.Broken:
+                    this.localConnection.Close(); //先正常关闭，释放资源
+                    this.localConnection.Open();
+                    break;
+                case ConnectionState.Closed:
+                    this.localConnection.Open();
+                    break;
+                case ConnectionState.Connecting:
+                    break;
+                case ConnectionState.Executing:
+                    break;
+                case ConnectionState.Fetching:
+                    break;
+                case ConnectionState.Open:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        //执行Update语句，返回更新的行数
+        public int doUpdate(string sql, ref string errMsg)
+        {
+            prepareConnect();
+            SqlCommand localCommand = new SqlCommand();
+            localCommand.CommandText = sql;
+            localCommand.Connection = this.localConnection;
+            try
+            {
+                return localCommand.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                errMsg = "[update error]" + ex.Message;
+                return -1;
+            }
+        }
+
+        //执行Select语句，返回DataTable结果集
+        public void doSelect(string sql, ref DataTable dataTable, ref string errMsg)
+        {
+            prepareConnect();
+            try
+            {
+                SqlDataAdapter dataAdapter = new SqlDataAdapter(sql, this.localConnection);
+                dataTable.Clear();
+                dataAdapter.Fill(dataTable);
+            }
+            catch (Exception ex)
+            {
+                errMsg = "[select error]" + ex.Message;
+            }
+        }
+
+    }
